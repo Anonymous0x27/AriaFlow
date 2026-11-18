@@ -1,0 +1,26 @@
+[package]
+name = "ariaflow-desktop"
+description = "AriaFlow desktop application (Tauri 2 shell; downloads are handled by ariaflowd / the embedded core)"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+
+# This crate is intentionally NOT a member of the top-level AriaFlow workspace:
+# building the desktop shell requires system WebView libraries (webkit2gtk / WebView2 /
+# WKWebView) that are not available on headless CI machines. Build it explicitly:
+#   cd apps/desktop && npm install && npm run tauri:build
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["net", "io-util", "time", "rt", "macros"] }
+dirs = "5"
+
+[features]
+# Custom protocol/window flags can be added here when wiring the sidecar daemon.
+default = []

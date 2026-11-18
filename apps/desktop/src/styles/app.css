@@ -1,0 +1,698 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--af-font);
+  background: var(--af-bg);
+  color: var(--af-text);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+}
+
+.af-panel {
+  background: var(--af-panel);
+  backdrop-filter: blur(var(--af-blur)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--af-blur)) saturate(1.6);
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius);
+  box-shadow: var(--af-shadow-sm);
+}
+
+.af-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--af-border);
+  background: var(--af-panel-solid);
+  color: var(--af-text);
+  border-radius: var(--af-radius-sm);
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+.af-btn:hover {
+  filter: brightness(1.04);
+}
+.af-btn:active {
+  transform: scale(0.98);
+}
+.af-btn-primary {
+  background: var(--af-accent);
+  border-color: transparent;
+  color: #fff;
+}
+.af-btn-danger {
+  color: var(--af-danger);
+}
+
+.af-input {
+  background: var(--af-panel-solid);
+  border: 1px solid var(--af-border);
+  color: var(--af-text);
+  border-radius: var(--af-radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+.af-input:focus {
+  border-color: var(--af-accent);
+  box-shadow: 0 0 0 3px var(--af-accent-soft);
+}
+
+/* 细进度条 */
+.af-progress {
+  position: relative;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--af-border);
+  overflow: hidden;
+}
+.af-progress > div {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--af-accent), color-mix(in srgb, var(--af-accent) 65%, white));
+  transition: width 0.4s ease;
+}
+
+.scroll-y {
+  overflow-y: auto;
+  /* Reserve the classic-scrollbar gutter when scrollbars are drawn classically
+     (Firefox/Windows always; WebKitGTK per GTK settings), and give WebKit
+     engines a styled 10px bar instead of a fading overlay one. */
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Explicit classic thin scrollbar for WebKit/WebKitGTK — overlay scrollbars
+   auto-hide there, leaving no visible affordance on tall pages. */
+.scroll-y::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.scroll-y::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-y::-webkit-scrollbar-thumb {
+  background: var(--af-text-dim);
+  opacity: 0.5;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.scroll-y::-webkit-scrollbar-thumb:hover {
+  background: var(--af-text-dim);
+  opacity: 0.8;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* macOS 下隐藏窗口默认边框感；Windows/Linux 使用系统装饰 */
+@supports (backdrop-filter: blur(1px)) {
+  .af-translucent-window {
+    background: var(--af-bg);
+  }
+}
+
+/* ---------- folder picker dialog (ariaflowd-backed) ---------- */
+.fp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  padding: 24px;
+}
+.fp-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 100%);
+  height: min(540px, 100%);
+  background: var(--af-panel-solid);
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius);
+  box-shadow: var(--af-shadow), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  outline: none;
+  overflow: hidden;
+}
+.fp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--af-border);
+}
+.fp-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--af-accent-soft);
+}
+.fp-title {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.fp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--af-text-dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.fp-icon-btn:hover:not(:disabled) {
+  background: var(--af-accent-soft);
+  color: var(--af-text);
+}
+.fp-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.fp-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--af-border);
+  background: color-mix(in srgb, var(--af-panel-solid) 82%, var(--af-bg));
+}
+.fp-crumbs {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  padding: 4px 4px;
+  border-radius: 8px;
+  background: var(--af-bg);
+  border: 1px solid var(--af-border);
+}
+.fp-crumbs::-webkit-scrollbar { display: none; }
+.fp-crumb {
+  border: 0;
+  background: transparent;
+  color: var(--af-text);
+  font-size: 12.5px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fp-crumb:hover {
+  background: var(--af-accent-soft);
+  color: var(--af-accent);
+}
+.fp-crumb:last-child {
+  font-weight: 600;
+}
+.fp-crumb-sep {
+  color: var(--af-text-dim);
+  font-size: 12px;
+  user-select: none;
+}
+.fp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+.fp-toggle-knob {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 9px;
+  background: var(--af-border);
+  transition: background 0.18s ease;
+}
+.fp-toggle-knob::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--af-panel-solid);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.18s ease;
+}
+.fp-toggle.on .fp-toggle-knob {
+  background: var(--af-accent);
+}
+.fp-toggle.on .fp-toggle-knob::after {
+  transform: translateX(13px);
+}
+.fp-toggle-label {
+  font-size: 12px;
+  color: var(--af-text-dim);
+  white-space: nowrap;
+}
+.fp-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: var(--af-text-dim) transparent;
+}
+.fp-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 86px 132px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--af-border) 55%, transparent);
+  background: transparent;
+  color: var(--af-text);
+  font-size: 13px;
+  text-align: left;
+  cursor: default;
+  width: 100%;
+}
+.fp-row.is-dir { cursor: pointer; }
+.fp-row.is-dir:hover { background: var(--af-accent-soft); }
+.fp-row.is-active { background: var(--af-accent-soft); }
+.fp-row-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--af-text-dim);
+  background: var(--af-panel-solid);
+  border-bottom: 1px solid var(--af-border);
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.fp-cell-icon { display: inline-flex; justify-content: center; }
+.fp-cell-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fp-row:not(.is-dir) .fp-cell-name { color: var(--af-text-dim); }
+.fp-cell-size, .fp-cell-date {
+  font-size: 12px;
+  color: var(--af-text-dim);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fp-truncated {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--af-warning);
+  background: color-mix(in srgb, var(--af-warning) 10%, transparent);
+  border-bottom: 1px solid var(--af-border);
+}
+.fp-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 34px 16px;
+  color: var(--af-text-dim);
+  font-size: 13px;
+}
+.fp-state p { margin: 0; max-width: 420px; text-align: center; }
+.fp-state-actions { display: flex; gap: 8px; }
+.fp-error { color: var(--af-danger); word-break: break-word; }
+.fp-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2.5px solid var(--af-border);
+  border-top-color: var(--af-accent);
+  animation: fp-spin 0.8s linear infinite;
+}
+@keyframes fp-spin { to { transform: rotate(360deg); } }
+.fp-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--af-border);
+  background: color-mix(in srgb, var(--af-panel-solid) 88%, var(--af-bg));
+}
+.fp-current {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--af-text-dim);
+  background: var(--af-bg);
+  border: 1px solid var(--af-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: var(--af-font-mono);
+}
+.fp-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ---------- custom checkboxes (theme-aware, replace UA black boxes) ---------- */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin: 0;
+  border: 1.5px solid var(--af-text-dim);
+  border-radius: 4px;
+  background: var(--af-panel-solid);
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input[type="checkbox"]::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) scale(0);
+  transform-origin: 50% 60%;
+  margin-top: -2px;
+  transition: transform 0.15s ease;
+}
+input[type="checkbox"]:checked {
+  background: var(--af-accent);
+  border-color: var(--af-accent);
+}
+input[type="checkbox"]:checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+input[type="checkbox"]:indeterminate {
+  background: var(--af-accent);
+  border-color: var(--af-accent);
+}
+input[type="checkbox"]:indeterminate::before {
+  transform: none;
+  width: 8px;
+  height: 2px;
+  border: 0;
+  border-radius: 1px;
+  background: #fff;
+  margin: 0;
+}
+input[type="checkbox"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--af-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- destructive-action confirmation dialog ---------- */
+.cd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  padding: 24px;
+}
+.cd-panel {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  grid-template-areas:
+    "icon body"
+    "actions actions";
+  gap: 4px 12px;
+  width: min(440px, 100%);
+  background: var(--af-panel-solid);
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius);
+  box-shadow: var(--af-shadow);
+  padding: 18px;
+}
+.cd-icon {
+  grid-area: icon;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  color: var(--af-warning);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--af-warning) 12%, transparent);
+  padding-top: 10px;
+}
+.cd-icon.danger {
+  color: var(--af-danger);
+  background: color-mix(in srgb, var(--af-danger) 12%, transparent);
+}
+.cd-body {
+  grid-area: body;
+  min-width: 0;
+}
+.cd-title {
+  margin: 2px 0 6px;
+  font-size: 15px;
+  font-weight: 650;
+}
+.cd-message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--af-text-dim);
+  word-break: break-word;
+}
+.cd-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--af-border);
+  border-radius: var(--af-radius-sm);
+  background: var(--af-bg);
+  font-size: 12.5px;
+  cursor: pointer;
+  user-select: none;
+}
+.cd-check:hover {
+  border-color: var(--af-accent);
+}
+.cd-actions {
+  grid-area: actions;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+.af-btn-danger-solid {
+  background: var(--af-danger);
+  border-color: transparent;
+  color: #fff;
+}
+.af-btn-danger-solid:hover {
+  filter: brightness(1.06);
+}
+
+/* ---------- tables on narrow screens: horizontal scroll, never squeeze ---------- */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--af-radius-sm);
+  scrollbar-width: thin;
+}
+
+/* ---------- app-wide: no text selection except where it matters ---------- */
+html,
+body,
+#app {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable="true"],
+.af-selectable,
+.af-selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+button,
+select,
+.task-row,
+.menu-item,
+.tab,
+.swatch,
+.seg-btn {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.error-text,
+.af-selectable {
+  cursor: auto;
+}
+
+/* ---------- dialogs & page transitions ---------- */
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dialog-backdrop,
+.cd-overlay,
+.fp-overlay {
+  animation: backdrop-in 0.18s ease-out;
+}
+.dialog,
+.cd-panel,
+.fp-panel {
+  animation: dialog-in 0.22s cubic-bezier(0.22, 0.9, 0.3, 1.12);
+}
+@keyframes backdrop-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+@keyframes menu-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+/* Leave transitions — applied to the root overlay by Vue <Transition>
+   (name="dialog" | "menu" | "toast"). Exit runs slightly faster than enter. */
+.dialog-leave-active {
+  pointer-events: none;
+  animation: backdrop-out 0.18s ease-in both;
+}
+.dialog-leave-active .dialog,
+.dialog-leave-active .cd-panel,
+.dialog-leave-active .fp-panel {
+  animation: dialog-out 0.18s ease-in both;
+}
+/* Triple-class beats the components' scoped `menu-in` animation (.x[data-v] is
+   also 0-2-0, and scoped styles load after this file — so leave animations
+   must out-specify them). */
+.context-menu.context-menu.menu-leave-active {
+  pointer-events: none;
+  animation: menu-out 0.12s ease-in both;
+}
+.context-toast.context-toast.toast-leave-active {
+  pointer-events: none;
+  animation: toast-out 0.18s ease-in both;
+}
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 0.17s ease,
+    transform 0.17s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(9px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-7px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog-backdrop,
+  .cd-overlay,
+  .fp-overlay,
+  .dialog,
+  .cd-panel,
+  .fp-panel,
+  .dialog-leave-active,
+  .dialog-leave-active .dialog,
+  .dialog-leave-active .cd-panel,
+  .dialog-leave-active .fp-panel,
+  .context-menu.context-menu.menu-leave-active,
+  .context-toast.context-toast.toast-leave-active {
+    animation: none;
+  }
+  .page-enter-active,
+  .page-leave-active {
+    transition: none;
+  }
+}

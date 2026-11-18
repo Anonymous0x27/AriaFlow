@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="auto">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Apply the persisted appearance (theme/accent/radius) before first paint;
+         the settings page persists it under this key. Without this the window
+         always boots in the default theme and only changes once Settings mounts. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem("ariaflow.appearance");
+          var a = raw ? JSON.parse(raw) : {};
+          var root = document.documentElement;
+          var accent = a.accent || "#0a84ff";
+          var scale = Number(a.fontScale);
+          if (!Number.isFinite(scale) || scale < 0.75 || scale > 1.5) scale = 1;
+          root.setAttribute("data-theme", a.theme || "auto");
+          root.style.setProperty("--af-accent", accent);
+          root.style.setProperty("--af-accent-soft", accent + "21");
+          root.style.setProperty("--af-radius", (a.radius != null ? a.radius : 12) + "px");
+          if (scale !== 1) root.style.zoom = String(scale);
+        } catch (e) {
+          /* corrupted preferences: fall back to the defaults in theme.css */
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>AriaFlow</title>
+    <meta name="description" content="AriaFlow — 快速、现代的跨平台下载管理器" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

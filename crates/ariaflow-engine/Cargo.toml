@@ -1,0 +1,35 @@
+[package]
+name = "ariaflow-engine"
+description = "AriaFlow download engine: segmentation planner, speed tracking, resume validation, HTTP/HTTPS transport"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# SFTP stack on Unix is built from source so no system OpenSSL/zlib is needed
+# (this is what makes x86_64-unknown-linux-musl builds work out of the box).
+[target.'cfg(unix)'.dependencies]
+libssh2-sys = { version = "0.3.4", features = ["vendored-openssl"] }
+libz-sys = { version = "1.1", default-features = false, features = ["static", "libc"] }
+
+[dependencies]
+ariaflow-core.workspace = true
+ariaflow-protocol.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+suppaftp = { version = "12.2.1", default-features = false, features = ["rustls-ring"] }
+ssh2 = "0.9.7"
+webpki-roots = "0.26"
+bytes = "1"
+url.workspace = true
+dirs.workspace = true
+tokio-util = { version = "0.7", features = ["io-util"] }
+futures-util = "0.3"
+librqbit = { version = "9.1.0", default-features = false, features = ["rust-tls"] }
+sha2.workspace = true
+chrono.workspace = true

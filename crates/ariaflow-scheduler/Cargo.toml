@@ -1,0 +1,15 @@
+[package]
+name = "ariaflow-scheduler"
+description = "AriaFlow scheduler: connection limits, priority queueing, retry backoff, time windows"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ariaflow-core.workspace = true
+tokio.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+chrono.workspace = true

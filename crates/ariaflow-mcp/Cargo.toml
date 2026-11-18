@@ -1,0 +1,24 @@
+[package]
+name = "ariaflow-mcp"
+description = "ariaflow-mcp — MCP (Model Context Protocol) server exposing AriaFlow control to AI agents"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "ariaflow-mcp"
+path = "src/main.rs"
+
+[dependencies]
+ariaflow-core.workspace = true
+ariaflow-api.workspace = true
+tokio.workspace = true
+axum.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

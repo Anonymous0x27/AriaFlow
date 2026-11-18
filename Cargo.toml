@@ -1,0 +1,81 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ariaflow-core",
+    "crates/ariaflow-protocol",
+    "crates/ariaflow-engine",
+    "crates/ariaflow-storage",
+    "crates/ariaflow-scheduler",
+    "crates/ariaflow-api",
+    "crates/ariaflow-mcp",
+    "crates/ariaflow-cli",
+    "crates/ariaflow-daemon",
+    "crates/ariaflow-browser",
+]
+# apps/desktop/src-tauri is a standalone Tauri 2 crate (needs system WebView
+# dependencies) and is intentionally NOT a workspace member. See docs/BUILD.md.
+exclude = ["apps/desktop/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+repository = "https://github.com/ariaflow/ariaflow"
+
+[workspace.dependencies]
+ariaflow-core = { path = "crates/ariaflow-core", version = "0.1.0" }
+ariaflow-protocol = { path = "crates/ariaflow-protocol", version = "0.1.0" }
+ariaflow-engine = { path = "crates/ariaflow-engine", version = "0.1.0" }
+ariaflow-storage = { path = "crates/ariaflow-storage", version = "0.1.0" }
+ariaflow-scheduler = { path = "crates/ariaflow-scheduler", version = "0.1.0" }
+ariaflow-api = { path = "crates/ariaflow-api", version = "0.1.0" }
+ariaflow-mcp = { path = "crates/ariaflow-mcp", version = "0.1.0" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["serde", "v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+url = "2"
+
+# Error handling & diagnostics
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# HTTP client — rustls (ring) with embedded Mozilla roots; no OpenSSL/system TLS anywhere.
+# For minimal musl/static builds this keeps the binary fully self-contained.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-webpki-roots", "stream", "http2", "cookies", "charset", "socks", "json"] }
+
+# Web framework & streams
+axum = "0.8"
+tokio-stream = { version = "0.1", features = ["sync"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+rust-embed = "8"
+
+# Storage
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "chrono"] }
+dirs = "5"
+
+# Checksum verification (RustCrypto / blake3)
+sha2 = "0.10"
+base64 = "0.22"
+sha1 = "0.10"
+md-5 = "0.10"
+blake3 = "1"
+
+# CLI / TUI
+clap = { version = "4", features = ["derive", "env"] }
+ratatui = "0.29"
+crossterm = "0.28"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "unwind"
+strip = "symbols"

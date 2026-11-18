@@ -1,0 +1,19 @@
+[package]
+name = "ariaflow-core"
+description = "AriaFlow core domain models, service trait and event definitions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+tokio.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+url.workspace = true
+thiserror.workspace = true
+dirs.workspace = true

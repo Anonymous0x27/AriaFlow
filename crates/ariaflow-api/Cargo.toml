@@ -1,0 +1,28 @@
+[package]
+name = "ariaflow-api"
+description = "AriaFlow HTTP Web API (server) and Rust API client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ariaflow-core.workspace = true
+ariaflow-protocol.workspace = true
+tokio.workspace = true
+axum.workspace = true
+tokio-stream.workspace = true
+tokio-util = { version = "0.7", features = ["io-util"] }
+tower-http.workspace = true
+rust-embed.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+url.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+dirs.workspace = true

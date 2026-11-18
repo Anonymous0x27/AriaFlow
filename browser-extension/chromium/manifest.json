@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "AriaFlow Grabber",
+  "version": "0.2.0",
+  "description": "Send downloads from Chromium-based browsers to the AriaFlow download manager.",
+  "permissions": [
+    "downloads",
+    "contextMenus",
+    "storage",
+    "notifications"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}

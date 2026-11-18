@@ -1,0 +1,9 @@
+{
+  "name": "ariaflow_native_host",
+  "description": "AriaFlow native messaging host \u2014 bridges browser downloads to ariaflowd.",
+  "path": "/ABSOLUTE/PATH/TO/ariaflow-native-host",
+  "type": "stdio",
+  "allowed_extensions": [
+    "ariaflow-grabber@ariaflow.invalid"
+  ]
+}

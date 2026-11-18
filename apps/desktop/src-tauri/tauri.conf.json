@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AriaFlow",
+  "version": "0.1.0",
+  "identifier": "com.ariaflow.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "AriaFlow",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 940,
+        "minHeight": 620,
+        "resizable": true,
+        "decorations": true,
+        "transparent": false,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Utility",
+    "shortDescription": "Fast, modern download manager",
+    "longDescription": "AriaFlow is a modern, cross-platform download manager. The desktop app is a thin client; all downloads are handled by the background ariaflowd service.",
+    "icon": [
+      "icons/icon.png"
+    ]
+  }
+}

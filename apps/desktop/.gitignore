@@ -1,0 +1,5 @@
+node_modules
+dist
+*.local
+# Cargo/Tauri target artifacts are handled selectively by the root .gitignore.
+src-tauri/gen

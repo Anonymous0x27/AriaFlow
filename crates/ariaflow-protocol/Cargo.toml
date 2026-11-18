@@ -1,0 +1,17 @@
+[package]
+name = "ariaflow-protocol"
+description = "AriaFlow protocol abstraction: DownloadProvider trait and protocol registry"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ariaflow-core.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+chrono.workspace = true
+url.workspace = true
+thiserror.workspace = true

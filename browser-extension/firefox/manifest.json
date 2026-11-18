@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "AriaFlow Grabber",
+  "version": "0.2.0",
+  "description": "Send downloads from Firefox to the AriaFlow download manager.",
+  "permissions": [
+    "downloads",
+    "contextMenus",
+    "storage",
+    "notifications"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "icons": {
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ariaflow-grabber@ariaflow.invalid",
+      "strict_min_version": "121.0"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}

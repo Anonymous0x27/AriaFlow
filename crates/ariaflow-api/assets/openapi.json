@@ -1,0 +1,2190 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AriaFlow Web API",
+    "version": "0.1.0",
+    "description": "HTTP API for the AriaFlow download manager. Defaults to loopback-only binding (127.0.0.1:8787). All endpoints except health probes require `Authorization: Bearer <token>` when a token is configured.",
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8787",
+      "description": "Local daemon"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/status": {
+      "get": {
+        "summary": "Daemon status and aggregate counters",
+        "responses": {
+          "200": {
+            "description": "Status snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads": {
+      "get": {
+        "summary": "List downloads",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated statuses"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Substring search on filename/url"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of downloads",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Download"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new download",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDownloadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Download"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/batch": {
+      "post": {
+        "summary": "Batch operations",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "addMany",
+                      "pauseAll",
+                      "resumeAll",
+                      "cancelAll",
+                      "removeCompleted"
+                    ]
+                  },
+                  "urls": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "tasks": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/NewDownloadRequest"
+                    },
+                    "description": "IDM-style batch import; same wire format as POST /api/v1/downloads. Takes precedence over `urls`."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "action",
+                    "affected"
+                  ],
+                  "properties": {
+                    "action": {
+                      "type": "string"
+                    },
+                    "affected": {
+                      "type": "integer"
+                    },
+                    "ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "index",
+                          "url",
+                          "message"
+                        ],
+                        "properties": {
+                          "index": {
+                            "type": "integer",
+                            "description": "Zero-based index into `tasks`/`urls`"
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}": {
+      "get": {
+        "summary": "Get one download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Download"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleteFile",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/pause": {
+      "post": {
+        "summary": "Pause",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Paused"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/resume": {
+      "post": {
+        "summary": "Resume",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Resumed"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/cancel": {
+      "post": {
+        "summary": "Cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cancelled"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/retry": {
+      "post": {
+        "summary": "Retry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Requeued"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/priority": {
+      "put": {
+        "summary": "Set task priority",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "priority"
+                ],
+                "properties": {
+                  "priority": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Updated"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/limit-rate": {
+      "put": {
+        "summary": "Set or clear a task's speed limit",
+        "description": "Sets the per-task download cap in bytes/sec. `0` disables the cap explicitly; `null` clears the per-task override (the global `perTaskSpeedLimit` applies). The key must be present. If the task is actively transferring it cycles pause→resume so the new cap takes effect.",
+        "operationId": "setTaskLimitRate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "limitRateBytesPerSec"
+                ],
+                "properties": {
+                  "limitRateBytesPerSec": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "format": "int64",
+                    "minimum": 0,
+                    "description": "bytes/sec; 0 = unlimited; null = clear per-task override"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Limit stored; `restarted` reports whether an in-flight transfer was cycled to apply it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "limitRateBytesPerSec": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "format": "int64"
+                    },
+                    "restarted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid `limitRateBytesPerSec`"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Task not found"
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/file": {
+      "get": {
+        "summary": "Download a completed task's file",
+        "description": "Streams the recorded file with `Content-Disposition: attachment`. Supports a single `Range: bytes=…` request (206). Requires the task to be completed.",
+        "operationId": "downloadFile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "bytes=0-1023"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File bytes (or the single `Range`-requested slice). `Content-Disposition: attachment`. Send `Range: bytes=start-end` for a 206 partial response.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial content (single Range request). `Content-Range: bytes start-end/total`.",
+            "headers": {
+              "Content-Range": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Unknown id or file missing on disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not completed / not a regular file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Unsatisfiable Range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/downloads/{id}/save-as": {
+      "post": {
+        "summary": "Save a completed task's file to a directory on the daemon host",
+        "description": "Server-side copy into `destDir`. `filename` must be a plain file name (no separators). Existing target files are refused with 409 unless `overwrite: true`.",
+        "operationId": "saveDownloadAs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Copied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveAsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid destDir/filename (or source == destination)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Unknown id, source file missing, or destDir does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Target exists and `overwrite` was not passed (or not completed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/history": {
+      "get": {
+        "summary": "Recent terminal records (completed/failed/cancelled), newest first",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete history records",
+        "description": "Deletes history records. Pass `ids` (comma-separated row ids) to delete specific entries; omit it to clear the entire history.",
+        "operationId": "deleteHistory",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated `download_history` row ids, e.g. `1,2,3`. Missing/empty clears all."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Number of records deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "integer",
+                      "format": "int64"
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed id in `ids`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/history/{id}/file": {
+      "get": {
+        "summary": "Download a history record's file",
+        "description": "Same streaming semantics as the task file endpoint, keyed by a `download_history` row id. Works even after the task row was deleted. Only completed history entries are served.",
+        "operationId": "downloadHistoryFile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "bytes=0-1023"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File bytes (or the single `Range`-requested slice). `Content-Disposition: attachment`. Send `Range: bytes=start-end` for a 206 partial response.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial content (single Range request). `Content-Range: bytes start-end/total`.",
+            "headers": {
+              "Content-Range": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Unknown id or file missing on disk",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not completed / not a regular file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "416": {
+            "description": "Unsatisfiable Range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/history/{id}/save-as": {
+      "post": {
+        "summary": "Save a history record's file to a directory on the daemon host",
+        "description": "History-scoped variant of the task save-as endpoint. Same copy semantics; keyed by `download_history` row id.",
+        "operationId": "saveHistoryAs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Copied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveAsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid destDir/filename (or source == destination)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Unknown id, source file missing, or destDir does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Target exists and `overwrite` was not passed (or not completed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "summary": "Export the built-in task category rules (machine-readable JSON)",
+        "responses": {
+          "200": {
+            "description": "Category rules document (version 1)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "version",
+                    "categories",
+                    "fallback"
+                  ],
+                  "properties": {
+                    "version": {
+                      "type": "integer"
+                    },
+                    "categories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "label",
+                          "labelEn",
+                          "extensions"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "labelEn": {
+                            "type": "string"
+                          },
+                          "extensions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "fallback": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/fs/list": {
+      "get": {
+        "tags": [
+          "fs"
+        ],
+        "summary": "List a directory (backs the in-app folder picker)",
+        "description": "Read-only listing of entry metadata; never returns file contents. Requires the same bearer token semantics as the rest of the API. An empty `path` lists the daemon user's home directory.",
+        "operationId": "fsList",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Absolute directory path; empty/missing lists the home directory."
+          },
+          {
+            "name": "showHidden",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include entries whose names start with a dot."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Directory listing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FsListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a directory",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Path not found or not readable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proxies": {
+      "get": {
+        "summary": "List configured proxies",
+        "responses": {
+          "200": {
+            "description": "Proxy list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProxyEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a proxy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProxyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created proxy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProxyEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/certificates": {
+      "get": {
+        "summary": "List stored SSH certificates (metadata only — private key material is never returned)",
+        "responses": {
+          "200": {
+            "description": "Certificate list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SshCertificateEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "summary": "Store an SSH certificate for sftp:// / ssh:// certificate authentication",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshCertificateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created certificate (metadata only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshCertificateEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/proxies/{id}": {
+      "put": {
+        "summary": "Replace a proxy (set isDefault=true to make it the default)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProxyInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated proxy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProxyEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Proxy not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a proxy",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Proxy not found"
+          }
+        }
+      }
+    },
+    "/api/v1/certificates/{id}": {
+      "put": {
+        "summary": "Update an SSH certificate. privateKey blank/absent keeps the stored key; passphrase blank keeps the stored one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SshCertificateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated certificate (metadata only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SshCertificateEntry"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Certificate not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an SSH certificate (tasks referencing it will fail on next run)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Certificate not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "summary": "Read global settings",
+        "responses": {
+          "200": {
+            "description": "GlobalSettings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Patch global settings (omitted fields unchanged)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated GlobalSettings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/probe": {
+      "post": {
+        "summary": "Probe a URL (metadata only; nothing is downloaded)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "headers": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "default": []
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Remote file metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteFileInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "502": {
+            "description": "Upstream probe failed"
+          }
+        }
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "summary": "Server-Sent Events stream of download lifecycle events",
+        "responses": {
+          "200": {
+            "description": "text/event-stream; event names: download_created, download_started, download_progress, download_paused, download_resumed, download_completed, download_failed, download_cancelled, download_removed, status_changed",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/openapi.json": {
+      "get": {
+        "summary": "This document",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.0 document",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Task not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Rate limit exceeded",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        }
+      },
+      "Download": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "savePath": {
+            "type": "string"
+          },
+          "totalSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "downloadedSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "queued",
+              "connecting",
+              "downloading",
+              "paused",
+              "waiting",
+              "retrying",
+              "completed",
+              "failed",
+              "cancelled",
+              "merging",
+              "verifying"
+            ]
+          },
+          "progress": {
+            "type": "number",
+            "format": "double"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "category": {
+            "type": "string"
+          },
+          "speedBytesPerSec": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "etaSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "errorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "sshCertificateId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "filename",
+          "savePath",
+          "status",
+          "createdAt"
+        ]
+      },
+      "NewDownloadRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "filename": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "saveDir": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "maxConnections": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 64
+          },
+          "priority": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "startPaused": {
+            "type": "boolean"
+          },
+          "allowRename": {
+            "type": "boolean"
+          },
+          "userAgent": {
+            "type": "string",
+            "description": "Per-task User-Agent override; omit to inherit the global setting"
+          },
+          "sshCertificateId": {
+            "type": "string",
+            "description": "SSH certificate id (ssh_certificates table) for ssh:// / sftp:// certificate authentication"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "GlobalSettings": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "downloadDir": {
+            "type": "string"
+          },
+          "maxConcurrentTasks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "maxConnectionsPerTask": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "maxTotalConnections": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "globalSpeedLimit": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "bytes/sec, 0 = unlimited"
+          },
+          "perTaskSpeedLimit": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "bytes/sec, 0 = unlimited"
+          },
+          "retryCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "apiEnabled": {
+            "type": "boolean",
+            "description": "Runtime switch: all /api/v1/* return 503 feature_disabled when false. Local pipe is not gated."
+          },
+          "apiBind": {
+            "type": "string",
+            "description": "ADDR:PORT the daemon listens on. Boot-time value: takes effect after the daemon restarts; the --api-bind flag/ARIAFLOW_API_BIND overrides it. Empty is rejected (400). Non-loopback without a --token exposes download control to the network."
+          },
+          "mcpEnabled": {
+            "type": "boolean",
+            "description": "Runtime switch: /mcp returns 503 feature_disabled when false."
+          },
+          "webUiEnabled": {
+            "type": "boolean",
+            "description": "Runtime switch: / (embedded web page) returns a 503 page when false."
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "userAgents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Managed User-Agent list offered in the advanced download dialog (input + pick). Seeded on first run with common desktop/browser agents and curl/Wget. Settings saved before this field existed also receive the seed; an explicit [] is kept (list cleared). Entries are trimmed and deduplicated on save; control characters and entries longer than 512 bytes are rejected."
+          },
+          "downloadWindowStartMinute": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1439
+          },
+          "downloadWindowEndMinute": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1439
+          },
+          "onDownloadCompleteCommand": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "onDownloadErrorCommand": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "webUiBind": {
+            "type": "string",
+            "description": "ADDR:PORT for the standalone web listener (desktop web page + same-origin /api/v1), e.g. 0.0.0.0:9090. Empty = disabled. Boot-time setting (restart required); --web-bind overrides."
+          },
+          "overviewShowPaused": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show paused tasks in the overview's in-progress section"
+          },
+          "overviewShowNewTasks": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show newly created (pending/queued/waiting/retrying) tasks in the overview's in-progress section"
+          },
+          "autoQuitDaemon": {
+            "type": "boolean",
+            "default": false,
+            "description": "Desktop-app preference: when the AriaFlow desktop app quits, also shut down ariaflowd. Off by default (UI quits, daemon keeps running)."
+          },
+          "overviewHiddenCards": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "downloading",
+                "waiting",
+                "paused",
+                "completed",
+                "failed",
+                "currentSpeed",
+                "totalDownloaded"
+              ]
+            },
+            "default": [],
+            "description": "Stat cards hidden from the overview page; empty shows all cards. Unknown ids are ignored."
+          },
+          "deleteFilesOnRemove": {
+            "type": "boolean",
+            "default": false,
+            "description": "Default for the 'also delete downloaded files' checkbox shown in remove-task confirmation dialogs"
+          }
+        }
+      },
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "uptimeSecs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "HistoryEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "url": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "savePath": {
+            "type": "string"
+          },
+          "totalSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "averageSpeed": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "errorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "completedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "filename",
+          "result",
+          "completedAt"
+        ]
+      },
+      "ProxyInput": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "address"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "http",
+              "https",
+              "socks5",
+              "socks5h"
+            ]
+          },
+          "address": {
+            "type": "string"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "password": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bypass": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isDefault": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "ProxyEntry": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProxyInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "RemoteFileInfo": {
+        "type": "object",
+        "properties": {
+          "finalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "totalSize": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "acceptRanges": {
+            "type": "boolean"
+          },
+          "etag": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lastModified": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contentType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "filenameHint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "FsEntry": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "dir",
+              "file",
+              "other"
+            ]
+          },
+          "size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "modifiedSecs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "kind"
+        ]
+      },
+      "FsListResponse": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isRoot": {
+            "type": "boolean"
+          },
+          "showHidden": {
+            "type": "boolean"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FsEntry"
+            }
+          }
+        },
+        "required": [
+          "path",
+          "parent",
+          "isRoot",
+          "showHidden",
+          "truncated",
+          "entries"
+        ]
+      },
+      "SshCertificateInput": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "privateKey": {
+            "type": "string",
+            "description": "OpenSSH PEM private key. Required for create; blank/absent keeps the stored key on update. Never returned."
+          },
+          "passphrase": {
+            "type": "string",
+            "description": "Passphrase for an encrypted key. Absent = keep/no change; \"\" = clear (refused for encrypted keys); non-empty = set."
+          }
+        }
+      },
+      "SshCertificateEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "algorithm": {
+            "type": "string",
+            "description": "OpenSSH key algorithm, e.g. ssh-ed25519"
+          },
+          "fingerprint": {
+            "type": "string",
+            "description": "SHA256 fingerprint of the public key"
+          },
+          "hasPassphrase": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SaveAsRequest": {
+        "type": "object",
+        "properties": {
+          "destDir": {
+            "type": "string",
+            "description": "Absolute path of the destination directory on the daemon host."
+          },
+          "filename": {
+            "type": "string",
+            "description": "Target file name; Must not contain path separators. Defaults to the task/history file name."
+          },
+          "overwrite": {
+            "type": "boolean",
+            "default": false,
+            "description": "Overwrite an existing file with the same name. Refused with 409 otherwise."
+          }
+        },
+        "required": [
+          "destDir"
+        ]
+      },
+      "SaveAsResponse": {
+        "type": "object",
+        "properties": {
+          "savedTo": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "uint64"
+          }
+        },
+        "required": [
+          "savedTo",
+          "size"
+        ]
+      }
+    }
+  }
+}
